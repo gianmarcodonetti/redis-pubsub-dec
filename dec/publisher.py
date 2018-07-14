@@ -41,5 +41,31 @@ the number of back-and-forth TCP packets between the client and server.
 """
 
 
-def create_event_buffer(buffer_length=100):
-    return
+def recursive_pipeline(pipe, fake_event_creator, pipeline_length, event_id_key):
+    if pipeline_length == 1:
+        return pipe
+    fake_event = fake_event_creator()
+    return recursive_pipeline(pipe.set(fake_event[event_id_key], json.dumps(fake_event)),
+                              fake_event_creator,
+                              pipeline_length - 1,
+                              event_id_key)
+
+
+def create_pipeline(redis_connection, fake_event_creator, pipeline_length=100, event_id_key='event_id'):
+    assert pipeline_length >= 0
+    initial_pipe = redis_connection.pipeline()
+    final_pipe = recursive_pipeline(initial_pipe, fake_event_creator, pipeline_length, event_id_key)
+    return final_pipe
+
+
+class Pipe():
+    def __init__(self):
+        self.diz = dict()
+        pass
+
+    def set(self, key, value):
+        self.diz[key] = value
+        return self
+
+    def get(self, key):
+        return self.get(key)
