@@ -1,6 +1,8 @@
 import random
 import uuid
 import json
+import redis
+import time
 
 from datetime import datetime
 
@@ -42,9 +44,17 @@ the number of back-and-forth TCP packets between the client and server.
 
 
 def recursive_pipeline(pipe, fake_event_creator, pipeline_length, event_id_key):
-    if pipeline_length == 1:
-        return pipe
+    """
+    Given an empty redis pipeline, fulfill it with a set of fake events, recursively.
+    :param pipe:
+    :param fake_event_creator:
+    :param pipeline_length:
+    :param event_id_key:
+    :return:
+    """
     fake_event = fake_event_creator()
+    if pipeline_length == 1:
+        return pipe.set(fake_event[event_id_key], json.dumps(fake_event))
     return recursive_pipeline(pipe.set(fake_event[event_id_key], json.dumps(fake_event)),
                               fake_event_creator,
                               pipeline_length - 1,
@@ -52,13 +62,21 @@ def recursive_pipeline(pipe, fake_event_creator, pipeline_length, event_id_key):
 
 
 def create_pipeline(redis_connection, fake_event_creator, pipeline_length=100, event_id_key='event_id'):
+    """
+    Create a redis pipeline, full with a set of fake events, ready to be published.
+    :param redis_connection:
+    :param fake_event_creator:
+    :param pipeline_length:
+    :param event_id_key:
+    :return:
+    """
     assert pipeline_length >= 0
     initial_pipe = redis_connection.pipeline()
     final_pipe = recursive_pipeline(initial_pipe, fake_event_creator, pipeline_length, event_id_key)
     return final_pipe
 
 
-class Pipe():
+class Pipe:
     def __init__(self):
         self.diz = dict()
         pass
@@ -69,3 +87,18 @@ class Pipe():
 
     def get(self, key):
         return self.get(key)
+
+
+def main():
+    rc = redis.StrictRedis(host='localhost', port=6379, db=0)
+    for n in range(10):
+        pipe = Pipe()
+        final_pipe = recursive_pipeline(pipe, create_fake_event, pipeline_length=100, event_id_key='event_id')
+        events_to_send = list(final_pipe.diz.values())
+        rc.publish('events', events_to_send)
+        time.sleep(5)
+    return
+
+
+if __name__ == '__main__':
+    main()
