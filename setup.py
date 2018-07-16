@@ -32,7 +32,7 @@ config = {
     'name': 'dec',
     'description': 'Package for Data Engineer Challenge',
     'author': 'G. Donetti',
-    'url': '',vi 
+    'url': '',
     'download_url': '',
     'author_email': '',
     'version': VERSION,

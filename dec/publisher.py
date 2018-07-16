@@ -16,10 +16,10 @@ def create_fake_event(clip_length=4, publisher_length=2):
     :param publisher_length:
     :return: dictionary
     """
-    clip_id = str(random.randint(0, 10 ** clip_length)).zfill(clip_length)
+    clip_id = str(random.randint(0, 10 ** clip_length - 1)).zfill(clip_length)
     country = random.sample(C.COUNTRIES, 1)[0]
     event_id = str(uuid.uuid4())
-    publisher_id = str(random.randint(0, 10 ** publisher_length)).zfill(publisher_length)
+    publisher_id = str(random.randint(0, 10 ** publisher_length - 1)).zfill(publisher_length)
     viewable_time = random.randrange(0, 300) / 10.0
     ts = datetime.now().timestamp()
 
@@ -92,11 +92,11 @@ class Pipe:
 def main():
     rc = redis.StrictRedis(host='localhost', port=6379, db=0)
     for n in range(10):
-        pipe = Pipe()
-        final_pipe = recursive_pipeline(pipe, create_fake_event, pipeline_length=100, event_id_key=C.EVENT_ID)
-        events_to_send = list(final_pipe.diz.values())
+        # pipe = Pipe()
+        # final_pipe = recursive_pipeline(pipe, create_fake_event, pipeline_length=100, event_id_key=C.EVENT_ID)
+        events_to_send = [create_fake_event() for _ in range(1000)]
         rc.publish('events', events_to_send)
-        time.sleep(5)
+        time.sleep(10)
     return
 
 
