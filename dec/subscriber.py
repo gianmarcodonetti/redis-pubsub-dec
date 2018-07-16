@@ -9,7 +9,7 @@ from dec import constants as C
 
 
 def main():
-    print("Main started. Establishing connection to REDIS...")
+    print("Subscriber started. Establishing connection to REDIS...")
     rc = redis.StrictRedis(host='localhost', port=6379, db=0)
     pubsub = rc.pubsub()
     pubsub.subscribe([C.CHANNEL])
@@ -20,11 +20,11 @@ def main():
         try:
             events_to_process = eval(message['data'])
             print("A new message has been pulled.")
-            single_step_run(events_to_process)
+            single_step_run(events_to_process, rc)
         except TypeError:
             # No data read
-            print("No message found in the queue...")
-            continue
+            print("No message found in the queue.")
+            pass
         time.sleep(10)
     return
 
@@ -147,9 +147,7 @@ def update_stats(last_stats, viewable_time, top_pub, unique_clips_count, clips_c
                 'data': updated_top_pub_list,
                 'publishers': ','.join(updated_top_pub[C.PUBLISHER_ID].values[:10]),
             },
-            'unique_clips_count_per_publisher': {
-                'data': updated_unique_clips_count_list,
-            },
+            'unique_clips_count_per_publisher': updated_unique_clips_count_list,
             'clips_count_per_country_day_night': updated_clips_count_list
         },
         'last_update_timestamp': datetime.now().timestamp()

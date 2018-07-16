@@ -90,11 +90,13 @@ class Pipe:
 
 
 def main():
+    print("Publisher started. Establishing connection to REDIS...")
     rc = redis.StrictRedis(host='localhost', port=6379, db=0)
     for n in range(10):
         # pipe = Pipe()
         # final_pipe = recursive_pipeline(pipe, create_fake_event, pipeline_length=100, event_id_key=C.EVENT_ID)
         events_to_send = [create_fake_event() for _ in range(1000)]
+        print("Publishing new events...")
         rc.publish(C.CHANNEL, events_to_send)
         time.sleep(10)
     return
