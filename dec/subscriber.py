@@ -2,6 +2,8 @@ import time
 import redis
 import pandas as pd
 
+from datetime import datetime
+
 from dec import statistics
 from dec import constants as C
 
@@ -41,32 +43,38 @@ def single_step_run(events_list, redis_connection):
     return
 
 
-def update_stats(last_stats, viewable_time, top_pub, unique_clips_count, clips_count):
-    stats = last_stats.get('statistics', {})
-    # 1. Viewable time
-    last_viewable_time = stats.get('viewable_time_sum_per_publisher',
-                                   pd.DataFrame(columns=[C.PUBLISHER_ID, C.VIEWABLE_TIME]))
-    updated_df = (pd.merge(last_viewable_time, pd.DataFrame(viewable_time), how='outer', on=[C.PUBLISHER_ID])
-                  .set_index([C.PUBLISHER_ID])
-                  .sum(axis=1)
-                  .reset_index()
-                  .rename(columns={0: C.VIEWABLE_TIME})
-                  )
-    updated_viewable_time = list(updated_df.T.to_dict().values())
+def serialize_df(df):
+    return list(df.T.to_dict().values())
 
-    # 2. Top pub
+
+def update_viewable_time(stats, viewable_time):
+    data = stats.get('viewable_time_sum_per_publisher', None)
+    last_viewable_time = pd.DataFrame(data) if data else pd.DataFrame(columns=[C.PUBLISHER_ID, C.VIEWABLE_TIME])
+
+    updated_viewable_time = (pd.merge(last_viewable_time, viewable_time, how='outer', on=[C.PUBLISHER_ID])
+                             .set_index([C.PUBLISHER_ID])
+                             .sum(axis=1)
+                             .reset_index()
+                             .rename(columns={0: C.VIEWABLE_TIME})
+                             )
+    return updated_viewable_time
+
+
+def update_top_pub(stats, top_pub):
     last_top_pub_dict = stats.get('top_pub', {})
-    last_top_pub = last_top_pub_dict.get('data', pd.DataFrame(columns=[C.PUBLISHER_ID, 'count']))
-    updated_df = (pd.merge(last_top_pub, pd.DataFrame(top_pub), how='outer', on=[C.PUBLISHER_ID])
-                  .set_index([C.PUBLISHER_ID])
-                  .sum(axis=1)
-                  .reset_index()
-                  .rename(columns={0: 'count'})
-                  )
+    data = last_top_pub_dict.get('data', None)
+    last_top_pub = pd.DataFrame(data) if data else pd.DataFrame(columns=[C.PUBLISHER_ID, 'count'])
 
-    updated_top_pub = list(updated_df.T.to_dict().values())
+    updated_top_pub = (pd.merge(last_top_pub, top_pub, how='outer', on=[C.PUBLISHER_ID])
+                       .set_index([C.PUBLISHER_ID])
+                       .sum(axis=1)
+                       .reset_index()
+                       .rename(columns={0: 'count'})
+                       )
+    return updated_top_pub
 
-    # 3. Unique clips count
+
+def update_unique_clips_count(stats, unique_clips_count):
     def special_sum(lis):
         head = lis[0]
         factor = head if isinstance(head, set) else set()
@@ -75,17 +83,68 @@ def update_stats(last_stats, viewable_time, top_pub, unique_clips_count, clips_c
         else:
             return factor
 
-    last_unique_clips_count_dict = stats.get('unique_clips_count_per_publisher', {})
-    last_unique_clips_count = last_unique_clips_count_dict.get('data', pd.DataFrame(columns=[C.PUBLISHER_ID, 'clips']))
-    updated_df = (pd.merge(last_unique_clips_count, pd.DataFrame(unique_clips_count), how='outer', on=[C.PUBLISHER_ID])
-                  .set_index([C.PUBLISHER_ID])
-                  .aggregate(special_sum, axis=1)
-                  .reset_index()
-                  .rename(columns={0: 'unique_clips'})
-                  )
-    updated_unique_clips_count = list(updated_df.T.to_dict().values())
+    data = stats.get('unique_clips_count_per_publisher', None)
+    last_unique_clips_count = pd.DataFrame(data) if data else pd.DataFrame(columns=[C.PUBLISHER_ID, 'clips'])
 
-    return None
+    updated_unique_clips_count = (pd.merge(last_unique_clips_count, unique_clips_count,
+                                           how='outer', on=[C.PUBLISHER_ID])
+                                  .set_index([C.PUBLISHER_ID])
+                                  .aggregate(special_sum, axis=1)
+                                  .reset_index()
+                                  .rename(columns={0: 'unique_clips'})
+                                  )
+    updated_unique_clips_count['unique_clips_count'] = updated_unique_clips_count['unique_clips'].apply(len)
+    return updated_unique_clips_count
+
+
+def update_clips_count(stats, clips_count):
+    data_str = stats.get('clips_count_per_country_day_night', None)
+    last_clips_count = pd.DataFrame(data_str) if data_str else pd.DataFrame(columns=[C.COUNTRY, 'daynight', 'count'])
+
+    updated_clips_count = (pd.merge(last_clips_count, clips_count, how='outer', on=[C.COUNTRY, 'daynight'])
+                           .set_index([C.COUNTRY, 'daynight'])
+                           .sum(axis=1)
+                           .reset_index()
+                           .rename(columns={0: 'count'})
+                           )
+    return updated_clips_count
+
+
+def update_stats(last_stats, viewable_time, top_pub, unique_clips_count, clips_count):
+    stats = last_stats.get('statistics', {})
+
+    # 1. Viewable time
+    updated_viewable_time = update_viewable_time(stats, viewable_time)
+    updated_viewable_time_list = list(updated_viewable_time.T.to_dict().values())
+
+    # 2. Top pub
+    updated_top_pub = update_top_pub(stats, top_pub)
+    updated_top_pub_list = list(updated_top_pub.T.to_dict().values())
+
+    # 3. Unique clips count
+    updated_unique_clips_count = update_unique_clips_count(stats, unique_clips_count)
+    updated_unique_clips_count_list = list(updated_unique_clips_count.T.to_dict().values())
+
+    # 4. Clips count
+    updated_clips_count = update_clips_count(stats, clips_count)
+    updated_clips_count_list = list(updated_clips_count.T.to_dict().values())
+
+    updated_stats = {
+        'statistics': {
+            'viewable_time_sum_per_publisher': updated_viewable_time_list,
+            'top_n_publisher_by_count': {
+                'data': updated_top_pub_list,
+                'publishers': ','.join(updated_top_pub[C.PUBLISHER_ID].values[:10]),
+            },
+            'unique_clips_count_per_publisher': {
+                'data': updated_unique_clips_count_list,
+            },
+            'clips_count_per_country_day_night': updated_clips_count_list
+        },
+        'last_update_timestamp': datetime.now().timestamp()
+    }
+
+    return updated_stats
 
 
 if __name__ == '__main__':
