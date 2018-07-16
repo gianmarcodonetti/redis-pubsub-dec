@@ -6,6 +6,8 @@ import time
 
 from datetime import datetime
 
+# from . import constants
+
 countries = {'IT', 'FR', 'EN', 'US', 'CH', 'RU', 'DE', 'NE', 'JP'}
 
 
