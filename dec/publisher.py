@@ -95,7 +95,7 @@ def main():
         # pipe = Pipe()
         # final_pipe = recursive_pipeline(pipe, create_fake_event, pipeline_length=100, event_id_key=C.EVENT_ID)
         events_to_send = [create_fake_event() for _ in range(1000)]
-        rc.publish('events', events_to_send)
+        rc.publish(C.CHANNEL, events_to_send)
         time.sleep(10)
     return
 

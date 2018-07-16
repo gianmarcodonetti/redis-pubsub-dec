@@ -8,3 +8,5 @@ TIMESTAMP = 'timestamp'
 COUNTRIES = {'IT', 'FR', 'EN', 'US', 'CH', 'RU', 'DE', 'NE', 'JP'}
 
 DAYNIGHT = 'daynight'
+
+CHANNEL = 'events'
