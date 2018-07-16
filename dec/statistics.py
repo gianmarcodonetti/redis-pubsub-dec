@@ -37,14 +37,14 @@ def top_n_publisher_by_count(events_list, n=10):
 
 def unique_clips_count_per_publisher(events_list):
     aggregation = {
-        C.CLIP_ID: lambda x: len(set(x))
+        C.CLIP_ID: lambda x: set(x)
     }
 
     pivot_table = list(pd.DataFrame(events_list)[[C.PUBLISHER_ID, C.CLIP_ID]]
                        .groupby(C.PUBLISHER_ID)
                        .aggregate(aggregation)
                        .reset_index()
-                       .rename(columns={C.CLIP_ID: 'unique_clips_count'})
+                       .rename(columns={C.CLIP_ID: 'unique_clips'})
                        .T
                        .to_dict()
                        .values()
