@@ -6,9 +6,7 @@ import time
 
 from datetime import datetime
 
-# from . import constants
-
-countries = {'IT', 'FR', 'EN', 'US', 'CH', 'RU', 'DE', 'NE', 'JP'}
+from dec import constants as C
 
 
 def create_fake_event(clip_length=4, publisher_length=2):
@@ -19,19 +17,19 @@ def create_fake_event(clip_length=4, publisher_length=2):
     :return: dictionary
     """
     clip_id = str(random.randint(0, 10 ** clip_length)).zfill(clip_length)
-    country = random.sample(countries, 1)[0]
+    country = random.sample(C.COUNTRIES, 1)[0]
     event_id = str(uuid.uuid4())
     publisher_id = str(random.randint(0, 10 ** publisher_length)).zfill(publisher_length)
     viewable_time = random.randrange(0, 300) / 10.0
     ts = datetime.now().timestamp()
 
     event = {
-        'clip': clip_id,
-        'country': country,
-        'event_id': event_id,
-        'publisher_id': publisher_id,
-        'viewable_time': viewable_time,
-        'timestamp': ts
+        C.CLIP_ID: clip_id,
+        C.COUNTRY: country,
+        C.EVENT_ID: event_id,
+        C.PUBLISHER_ID: publisher_id,
+        C.VIEWABLE_TIME: viewable_time,
+        C.TIMESTAMP: ts
     }
 
     return event
@@ -95,7 +93,7 @@ def main():
     rc = redis.StrictRedis(host='localhost', port=6379, db=0)
     for n in range(10):
         pipe = Pipe()
-        final_pipe = recursive_pipeline(pipe, create_fake_event, pipeline_length=100, event_id_key='event_id')
+        final_pipe = recursive_pipeline(pipe, create_fake_event, pipeline_length=100, event_id_key=C.EVENT_ID)
         events_to_send = list(final_pipe.diz.values())
         rc.publish('events', events_to_send)
         time.sleep(5)

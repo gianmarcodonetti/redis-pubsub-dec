@@ -4,13 +4,13 @@ import pandas as pd
 
 from datetime import datetime
 
-from . import constants
+from dec import constants as C
 
 
 def viewable_time_sum_per_publisher(events_list):
     pivot_table = list(
-        pd.DataFrame(events_list)[['publisher_id', 'viewable_time']]
-            .groupby('publisher_id')
+        pd.DataFrame(events_list)[[C.PUBLISHER_ID, C.VIEWABLE_TIME]]
+            .groupby(C.PUBLISHER_ID)
             .sum()
             .reset_index()
             .T
@@ -22,11 +22,11 @@ def viewable_time_sum_per_publisher(events_list):
 
 
 def top_n_publisher_by_count(events_list, n=10):
-    pivot_table = list(pd.DataFrame(events_list)[['publisher_id', 'event_id']]
-                       .groupby('publisher_id')
+    pivot_table = list(pd.DataFrame(events_list)[[C.PUBLISHER_ID, C.EVENT_ID]]
+                       .groupby(C.PUBLISHER_ID)
                        .count()
                        .reset_index()
-                       .rename(columns={'event_id': 'count'})
+                       .rename(columns={C.EVENT_ID: 'count'})
                        .sort_values(by='count', ascending=False)
                        .iloc[:n, :]
                        .T
@@ -39,14 +39,14 @@ def top_n_publisher_by_count(events_list, n=10):
 
 def unique_clips_count_per_publisher(events_list):
     aggregation = {
-        'clip': lambda x: len(set(x))
+        C.CLIP_ID: lambda x: len(set(x))
     }
 
-    pivot_table = list(pd.DataFrame(events_list)[['publisher_id', 'clip']]
-                       .groupby('publisher_id')
+    pivot_table = list(pd.DataFrame(events_list)[[C.PUBLISHER_ID, C.CLIP_ID]]
+                       .groupby(C.PUBLISHER_ID)
                        .aggregate(aggregation)
                        .reset_index()
-                       .rename(columns={'clip': 'unique_clips_count'})
+                       .rename(columns={C.CLIP_ID: 'unique_clips_count'})
                        .T
                        .to_dict()
                        .values()
@@ -63,14 +63,14 @@ def day_night(ts):
 
 
 def clips_count_per_country_day_night(events_list):
-    df = pd.DataFrame(events_list)[['country', 'timestamp']]
-    df['daynight'] = df.apply(lambda x: day_night(x['timestamp']), axis=1)
+    df = pd.DataFrame(events_list)[[C.COUNTRY, C.TIMESTAMP]]
+    df['daynight'] = df.apply(lambda x: day_night(x[C.TIMESTAMP]), axis=1)
 
     pivot_table = list(df
-                       .groupby(['country', 'daynight'])
+                       .groupby([C.COUNTRY, 'daynight'])
                        .count()
                        .reset_index()
-                       .rename(columns={'timestamp': 'count'})
+                       .rename(columns={C.TIMESTAMP: 'count'})
                        .T
                        .to_dict()
                        .values()
