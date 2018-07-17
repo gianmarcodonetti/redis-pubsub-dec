@@ -129,19 +129,19 @@ def update_stats(last_stats, viewable_time, top_pub, unique_clips_count, clips_c
     print("Updating all the statistics...")
     # 1. Viewable time
     updated_viewable_time = update_viewable_time(stats, viewable_time)
-    updated_viewable_time_list = list(updated_viewable_time.T.to_dict().values())
+    updated_viewable_time_list = serialize_df(updated_viewable_time)
 
     # 2. Top pub
     updated_top_pub = update_top_pub(stats, top_pub)
-    updated_top_pub_list = list(updated_top_pub.T.to_dict().values())
+    updated_top_pub_list = serialize_df(updated_top_pub)
 
     # 3. Unique clips count
     updated_unique_clips_count = update_unique_clips_count(stats, unique_clips_count)
-    updated_unique_clips_count_list = list(updated_unique_clips_count.T.to_dict().values())
+    updated_unique_clips_count_list = serialize_df(updated_unique_clips_count)
 
     # 4. Clips count
     updated_clips_count = update_clips_count(stats, clips_count)
-    updated_clips_count_list = list(updated_clips_count.T.to_dict().values())
+    updated_clips_count_list = serialize_df(updated_clips_count)
 
     updated_stats = {
         'statistics': {
