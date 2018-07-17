@@ -1,7 +1,6 @@
 import time
 import redis
 import pandas as pd
-
 from datetime import datetime
 
 from dec import statistics
@@ -14,6 +13,7 @@ def main():
     pubsub = rc.pubsub()
     pubsub.subscribe([C.CHANNEL])
     print("Subscribed to channel '{}'.".format(C.CHANNEL))
+    print("=============================================\n")
     while True:
         print("Pulling a new message...")
         message = pubsub.get_message()
@@ -21,11 +21,14 @@ def main():
             events_to_process = eval(message['data'])
             print("A new message has been pulled.")
             single_step_run(events_to_process, rc)
-        except TypeError:
+        except TypeError as te:
+            print("Exception: {}".format(te))
             # No data read
             print("No message found in the queue.")
             pass
-        time.sleep(10)
+        s = 10
+        print("Sleeping for {} seconds =====================\n".format(s))
+        time.sleep(s)
     return
 
 

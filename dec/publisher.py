@@ -3,7 +3,7 @@ import uuid
 import json
 import redis
 import time
-
+import argparse
 from datetime import datetime
 
 from dec import constants as C
@@ -89,18 +89,25 @@ class Pipe:
         return self.get(key)
 
 
-def main():
+def main(events=10 ** 4):
     print("Publisher started. Establishing connection to REDIS...")
     rc = redis.StrictRedis(host='localhost', port=6379, db=0)
-    for n in range(10):
+    loops = 10
+    for l in range(loops):
         # pipe = Pipe()
         # final_pipe = recursive_pipeline(pipe, create_fake_event, pipeline_length=100, event_id_key=C.EVENT_ID)
-        events_to_send = [create_fake_event() for _ in range(1000)]
-        print("Publishing new events...")
+        events_to_send = [create_fake_event() for _ in range(events)]
+        print("Publishing {} new events...".format(events))
         rc.publish(C.CHANNEL, events_to_send)
-        time.sleep(10)
+        s = 10
+        print("Sleeping for {} seconds.".format(s))
+        time.sleep(s)
     return
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Events publisher.')
+    parser.add_argument('--events', type=int, default=10 ** 4, help='number of events to generate at each step')
+    args = parser.parse_args()
+    e = args.__dict__['events']
+    main(e)
