@@ -1,4 +1,4 @@
-# dec
+# Redis PubSub Test
 
 [![Build Status](https://travis-ci.org/gianmarcodonetti/dec.svg?branch=master)](https://travis-ci.org/gianmarcodonetti/dec)
 
